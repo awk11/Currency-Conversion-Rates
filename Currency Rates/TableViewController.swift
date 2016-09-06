@@ -10,23 +10,33 @@ import UIKit
 
 class TableViewController: UITableViewController {
     
+    //MARK: Properties
     @IBOutlet weak var navBarTitle: UINavigationItem!
+    
+    //A struct of the currency conversion data
+    //keeps the related currency type and conversion rate together in a simple way
     struct currencyConvert{
         var currencyType: String
         var conversionRate: Double
     }
     
+    //the list that is used to display the data in the tableview
     var list = [currencyConvert]()
+    //the idctionary the rates are initially put into
     var Rates: NSDictionary = [:]
     
+    //calls to the api before the view appears so that it automatically gets put onto the page
     override func viewWillAppear(animated: Bool) {
         getListOfRates()
     }
 
     override func viewDidLoad() {
         navBarTitle.title = "Loading"
+        self.tableView.scrollEnabled = false
         super.viewDidLoad()
     }
+    
+    //MARK: Data Retrieval
     
     //gets list of conversion rates from api
     func getListOfRates(){
@@ -34,14 +44,15 @@ class TableViewController: UITableViewController {
         let path = "https://api.fixer.io/latest?base=USD"
         let url = NSURL(string: path)
         
-        let request = NSMutableURLRequest(URL: url!)
+        let apirequest = NSMutableURLRequest(URL: url!)
         
-        request.HTTPMethod = "GET"
+        apirequest.HTTPMethod = "GET"
         
-        let task = NSURLSession.sharedSession().dataTaskWithRequest(request){
+        //gets the conversion rates from the api in json  format
+        let task = NSURLSession.sharedSession().dataTaskWithRequest(apirequest){
             data, response, error in
             
-            if error != nil{
+            if error != nil{    //catches an error if anything went wrong retrieving from the api
                 print("Error!")
                 let err = currencyConvert(currencyType: "Error!" + error!.localizedDescription, conversionRate: 0.0)
                 self.list += [err]
@@ -49,14 +60,12 @@ class TableViewController: UITableViewController {
             }
             
             do{
-                if let convertedJsonIntoDict = try NSJSONSerialization.JSONObjectWithData(data!, options: []) as? NSDictionary{
-                    //print(convertedJsonIntoDict)
-                    
-                    self.Rates = convertedJsonIntoDict["rates"] as! NSDictionary
-                    //print(self.Rates)
+                if let convertedInitialJson = try NSJSONSerialization.JSONObjectWithData(data!, options: []) as? NSDictionary{
+                    //puts the json into a dictionary if the above passes as true
+                    self.Rates = convertedInitialJson["rates"] as! NSDictionary
                     self.addRatesToList()
                 }
-                } catch let error as NSError {
+            } catch let error as NSError {  //catches an error if there anything went wrong converting the json to a dictionary
                     print(error.localizedDescription)
                     let err = currencyConvert(currencyType: "Error!" + error.localizedDescription, conversionRate: 0.0)
                     self.list += [err]
@@ -79,6 +88,8 @@ class TableViewController: UITableViewController {
         navBarTitle.title = "USD"
         
     }
+    
+    //MARK: Standard TableView Functions
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
@@ -99,22 +110,21 @@ class TableViewController: UITableViewController {
         let cellIdentifier = "ConversionTableViewCell"
         let cell = tableView.dequeueReusableCellWithIdentifier(cellIdentifier, forIndexPath: indexPath) as! ConversionTableViewCell
         
-        while list.count == 0{
-            
-        }
+        let rate = list[indexPath.row]
         
-            let rate = list[indexPath.row]
-        
-            cell.currencyType.text = rate.currencyType
-            cell.conversionRate.text =  String(rate.conversionRate)
-        
-        //tableView.scrollToRowAtIndexPath(indexPath, atScrollPosition: UITableViewScrollPosition.Bottom, animated: true)
+        cell.currencyType.text = rate.currencyType
+        cell.conversionRate.text =  String(rate.conversionRate)
+        self.tableView.scrollEnabled = true
         return cell
     }
     
+    //MARK: Actions
+    
+    //refreshes the table when the user hits the refresh button
     @IBAction func refreshTable(sender: UIBarButtonItem) {
         list.removeAll()
         navBarTitle.title = "Loading"
+        self.tableView.scrollEnabled = false
         self.tableView.reloadData()
         getListOfRates()
     }
