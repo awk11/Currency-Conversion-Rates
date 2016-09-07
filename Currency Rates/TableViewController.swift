@@ -62,8 +62,9 @@ class TableViewController: UITableViewController {
             do{
                 if let convertedInitialJson = try NSJSONSerialization.JSONObjectWithData(data!, options: []) as? NSDictionary{
                     //puts the json into a dictionary if the above passes as true
+                    dispatch_async(dispatch_get_main_queue(), { () -> Void in
                     self.Rates = convertedInitialJson["rates"] as! NSDictionary
-                    self.addRatesToList()
+                        self.addRatesToList() })
                 }
             } catch let error as NSError {  //catches an error if there anything went wrong converting the json to a dictionary
                     print(error.localizedDescription)
